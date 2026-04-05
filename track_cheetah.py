@@ -533,7 +533,7 @@ if __name__ == "__main__":
                 for condition_name, condition in conditions.items():
                     if condition.test(track_id, frame, past_pos, curr_pos):  # type: ignore
                         new_row = pd.DataFrame(
-                            [[frame, track_id, class_label]],
+                            [[frame * config["video_stride"], track_id, class_label]],
                             columns=["frame", "id", "class"],
                         )
                         condition_dataframes[condition_name] = pd.concat(
