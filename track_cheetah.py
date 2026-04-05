@@ -8,9 +8,20 @@ import pandas as pd
 from dataclasses import dataclass
 from typing import Any, TextIO
 import jsonpickle  # type: ignore
+import random
 
 FORGET_AFTER_UNSEEN_FRAMES = 120
 SAVE_EVERY_N_FRAMES = 120
+
+
+def get_random_color() -> tuple[int, int, int]:
+    """
+    Returns a random BGR color tuple suitable for OpenCV.
+
+    Returns:
+        tuple[int, int, int]: A random color in BGR format (0-255 for each channel)
+    """
+    return (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
 
 
 def request_n_lines(
@@ -239,6 +250,12 @@ class SingleLineCondition:
             float(line[1][0]), float(line[1][1])
         )
 
+    def get_line(self) -> tuple[tuple[int, int], tuple[int, int]]:
+        return (
+            (int(self._line[0].x), int(self._line[0].y)),
+            (int(self._line[1].x), int(self._line[1].y)),
+        )
+
     def test(self, id: int, frame: int, past_point: Point, curr_point: Point) -> bool:
         return segments_intersect(self._line, (past_point, curr_point))
 
@@ -259,6 +276,19 @@ class DoubleLineCondition:
             float(line_2[1][0]), float(line_2[1][1])
         )
         self._line_1_passed: dict[int, int] = {}
+
+    def get_lines(
+        self,
+    ) -> tuple[
+        tuple[tuple[int, int], tuple[int, int]], tuple[tuple[int, int], tuple[int, int]]
+    ]:
+        return (
+            (int(self._line_1[0].x), int(self._line_1[0].y)),
+            (int(self._line_1[1].x), int(self._line_1[1].y)),
+        ), (
+            (int(self._line_2[0].x), int(self._line_2[0].y)),
+            (int(self._line_2[1].x), int(self._line_2[1].y)),
+        )
 
     def test(self, id: int, frame: int, past_point: Point, curr_point: Point) -> bool:
         if segments_intersect(self._line_1, (past_point, curr_point)):
@@ -289,6 +319,43 @@ def add_double_line_condition(frame: MatLike) -> DoubleLineCondition | None:
     if len(lines) != 2:
         return None
     return DoubleLineCondition(lines[0], lines[1])
+
+
+def save_image_with_lines(
+    image: MatLike,
+    lines: list[tuple[tuple[int, int], tuple[int, int]]],
+    output_path: str,
+    colors: list[tuple[int, int, int]] | None = None,
+    line_thickness: int = 2,
+) -> None:
+    """
+    Displays an image with lines drawn on it in specified colors.
+    The window stays open until the user presses a key or closes it.
+
+    Args:
+        image: The base image to display
+        lines: List of line segments as ((x1, y1), (x2, y2))
+        colors: List of BGR color tuples for each line. If None, uses green for all.
+        line_thickness: Thickness of the lines (default: 2)
+        window_name: Name of the window (default: "Image with Lines")
+    """
+    img_copy = image.copy()
+
+    # Default to green if no colors specified
+    if colors is None:
+        colors = [(0, 255, 0)] * len(lines)
+
+    # Ensure we have a color for each line
+    colors = colors + [(0, 255, 0)] * (len(lines) - len(colors))
+
+    # Draw all lines
+    for (pt1, pt2), color in zip(lines, colors):
+        cv2.line(img_copy, pt1, pt2, color, line_thickness)
+
+    # Save the image to file
+    output_file = Path(output_path)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    cv2.imwrite(str(output_path), img_copy)
 
 
 if __name__ == "__main__":
@@ -405,10 +472,45 @@ if __name__ == "__main__":
     with config_path.open(mode="x") as config_file:
         config_file.write(jsonpickle.encode(config))  # type: ignore
 
+    first_frame = get_first_frame(config["video_path"])
+    if first_frame is None:
+        raise Exception
+    lines: list[tuple[tuple[int, int], tuple[int, int]]] = []
+    colors: list[tuple[int, int, int]] = []
+    for condition_name, condition in config["conditions"].items():
+        if isinstance(condition, SingleLineCondition):
+            line = condition.get_line()
+            color = get_random_color()
+            lines.append(line)
+            colors.append(color)
+            save_image_with_lines(
+                first_frame,
+                [line],
+                f"./outputs/{unique_id}/{condition_name}.jpg",
+                None,
+            )
+        elif isinstance(condition, DoubleLineCondition):
+            line_1, line_2 = condition.get_lines()
+            color = get_random_color()
+            lines.append(line_1)
+            colors.append(color)
+            lines.append(line_2)
+            colors.append(color)
+            save_image_with_lines(
+                first_frame,
+                [line_1, line_2],
+                f"./outputs/{unique_id}/{condition_name}.jpg",
+                None,
+            )
+
+    save_image_with_lines(
+        first_frame, lines, f"./outputs/{unique_id}/conditions.jpg", colors
+    )
+
     condition_dataframes: dict[str, pd.DataFrame] = {}
     condition_files: dict[str, TextIO] = {}
     for condition_name in config["conditions"].keys():
-        output_path = Path(f"./outputs/{condition_name}-{unique_id}.csv")
+        output_path = Path(f"./outputs/{unique_id}/{condition_name}.csv")
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_file = output_path.open(mode="x")
         condition_dataframes[condition_name] = pd.DataFrame(
