@@ -46,7 +46,7 @@ pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cuxx
 3-2. Install everything else.
 
 ```bash
-pip install "opencv-python<4.13" ultralytics huggingface-hub pandas
+pip install "opencv-python<4.13" ultralytics huggingface-hub pandas jsonpickle
 ```
 
 4. Run the script.
