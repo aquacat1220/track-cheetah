@@ -141,6 +141,11 @@ pip install "opencv-python<4.13" ultralytics huggingface-hub pandas jsonpickle
 python track_cheetah.py
 ```
 
-## Pretrained Models
+## Disclaimer
 
-This script uses ultralytic's [YOLO26](https://docs.ultralytics.com/models/yolo26/), and optionally allows traffic-finetuned models from [Perception365](https://huggingface.co/Perception365/VehicleNet-Y26m).
+This project uses ultralytic's [YOLO26](https://docs.ultralytics.com/models/yolo26/) (licensed under GNU AGPL v3), and optionally Perception365's [VehicleNet-Y26](https://huggingface.co/Perception365/VehicleNet-Y26m) (licensed under Apache 2.0).
+As GNU AGPL v3 is [compatible with Apache 2.0](https://www.apache.org/licenses/GPL-compatibility.html), this script is also distributed under the GNU AGPL v3 license (see LICENSE.md for more).
+
+VehicleNet-Y26 is a gated model.
+I don't understand how gated models work with open source licenses, but it should be best not to ship my project with their weights.
+This project **does not include the weights for VehicleNet-Y26**, and therefore the user should request access to their gated repo individually.
