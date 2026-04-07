@@ -25,7 +25,7 @@ The configuration file contains all the necessary information to run inference o
 
 If you have a configuration file from a previous run, you can reuse it to rerun the model with the same configuration.
 
-If this is your first time running the script, or you want to try a different configuration, leave it blank to proceed to manually.
+If this is your first time running the script, or you want to try a different configuration, leave it blank to proceed manually.
 
 **2. Specify video path.**
 
